@@ -10,3 +10,12 @@ python
 
 ```
 
+## Code Template
+To copy code to the miro
+```scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no myfile.py miro@192.168.x.x:/home/miro```
+Replace ```myfile.py``` with the file you want to use
+Replace ```x.x``` in ```miro@192.168.x.x:/home/miro``` with the relevant parts of your miro IP
+
+To run the code
+```ssh miro@192.168.x.x:/home/miro```
+```python myfile.py```
