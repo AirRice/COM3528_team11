@@ -21,7 +21,7 @@ Replace ```x.x``` in ```miro@192.168.x.x:/home/miro``` with the relevant parts o
 
 To run the code
 
-```ssh miro@192.168.x.x:/home/miro```
+```ssh miro@192.168.x.x```
 
 Default ssh password - miro
 

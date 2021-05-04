@@ -23,6 +23,9 @@ class Client:
     MAX_WHEEL_SPEED = 0.25
     STATE = "home"
 
+    HUNGER_VALUE = 0
+    HUNGER_THRESHOLD = 50 # Determines the point where the robot will look for 
+    HUNGER_INCREASE = 0.01 # Determines how quickly the hunger increases
 
     TICK = 0.01    
     ROBOT_NAME = '/' + os.getenv('MIRO_ROBOT_NAME')
@@ -94,6 +97,23 @@ class Client:
             self.RESOLVE_COLLISION = False
 
 
+    def check_alive(self):
+        # Checks is miro has died from starvation
+        if self.HUNGER_VALUE >= 100:
+            return False
+        return True
+
+
+    def increase_hunger(self):
+        # Increases hunger value per iteration
+        self.HUNGER_VALUE += self.HUNGER_INCREASE
+        print "Hunger Value - " + str(self.HUNGER_VALUE)
+
+    def check_food_search(self):
+        # Checks if it needs to search for food
+        if self.HUNGER_VALUE >= self.HUNGER_THRESHOLD:
+            self.STATE = "search_food"
+
     def __init__(self):
         rospy.init_node('object_localization', anonymous=True)
         rospy.sleep(2.0)
@@ -111,7 +131,7 @@ class Client:
 
     def main_loop(self):
         print('Looping')
-        while not rospy.core.is_shutdown():
+        while not rospy.core.is_shutdown() and self.check_alive():
             if self.detect_collision():
                 self.reset_collision_markers()
                 self.RESOLVE_COLLISION = True
@@ -122,11 +142,13 @@ class Client:
 
             elif self.STATE == "home":
                 # Code for when home
-                pass
+                print "At home"
+                self.check_food_search()
 
 
             elif self.STATE == "search_food":
-                # Code for searching for food
+                # Code for searching for food"
+                print "Searching"
                 pass
 
 
@@ -141,12 +163,10 @@ class Client:
             else:
                 pass
 
+            self.increase_hunger()
             rospy.sleep(self.TICK)
+        print "Dead"
 
 if __name__ == "__main__":
     client = Client()
     client.main_loop()
-
-# Points to check:
-# Correct angles
-# Correct magnitudes
