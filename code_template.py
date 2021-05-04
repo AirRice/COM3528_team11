@@ -1,5 +1,3 @@
-from bluetoother_scanner import BluetootherScanner
-
 import rospy
 import miro2 as miro2
 
@@ -13,8 +11,6 @@ from nav_msgs.msg import Odometry
 
 import os
 import math
-
-from bluetoother_scanner import BluetootherScanner
 
 class Client:
 
