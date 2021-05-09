@@ -11,7 +11,7 @@ from nav_msgs.msg import Odometry
 
 import os
 import math
-
+import time
 class Client:
 
     TOUCH_BODY = False
@@ -22,10 +22,12 @@ class Client:
     BROADCAST_RATE = 50
     MAX_WHEEL_SPEED = 0.25
     STATE = "home"
-
-    HUNGER_VALUE = 0
+    
+    TIME_LIMIT = 300 # Allotted time limit for robot routine
+    TIME_START = 0
+    FOOD_VALUE = 0
     HUNGER_THRESHOLD = 50 # Determines the point where the robot will look for 
-    HUNGER_INCREASE = 0.01 # Determines how quickly the hunger increases
+    FOOD_DECREASE = 0.01 # Determines how quickly the food is depleted
 
     TICK = 0.01    
     ROBOT_NAME = '/' + os.getenv('MIRO_ROBOT_NAME')
@@ -99,20 +101,22 @@ class Client:
 
     def check_alive(self):
         # Checks is miro has died from starvation
-        if self.HUNGER_VALUE >= 100:
-            return False
-        return True
+        return self.FOOD_VALUE > 0
 
-
-    def increase_hunger(self):
-        # Increases hunger value per iteration
-        self.HUNGER_VALUE += self.HUNGER_INCREASE
-        print "Hunger Value - " + str(self.HUNGER_VALUE)
+    def check_timelimit():
+        return (time.clock() - self.TIME_START < self.TIME_LIMIT)
+        
+    def handle_hunger(self):
+        # Decreases food count per iteration
+        self.FOOD_VALUE -= self.FOOD_DECREASE
+        print "Current Food - " + str(self.FOOD_VALUE)
 
     def check_food_search(self):
         # Checks if it needs to search for food
-        if self.HUNGER_VALUE >= self.HUNGER_THRESHOLD:
+        if self.FOOD_VALUE <= self.HUNGER_THRESHOLD:
             self.STATE = "search_food"
+        else
+            self.STATE = "search_home"
 
     def __init__(self):
         rospy.init_node('object_localization', anonymous=True)
@@ -127,45 +131,31 @@ class Client:
 
         # Control subscribers
         self.velocity = rospy.Publisher(self.ROBOT_NAME + '/control/cmd_vel', TwistStamped, queue_size=1, tcp_nodelay=True)
-
+        self.TIME_START = time.clock()
 
     def main_loop(self):
         print('Looping')
-        while not rospy.core.is_shutdown() and self.check_alive():
+        while not rospy.core.is_shutdown() and self.check_alive() and self.check_timelimit():
+            self.handle_hunger()
+            self.check_food_search()
+            elif self.STATE == "search_food":
+                # Code for finding food
+                pass
+            elif self.STATE == "search_home":
+                # Code for finding home (also check that home has already be found here: In which case, increase home score)
+                pass
+                
             if self.detect_collision():
                 self.reset_collision_markers()
                 self.RESOLVE_COLLISION = True
 
             elif self.RESOLVE_COLLISION:
                 self.resolve_collision()
-
-
-            elif self.STATE == "home":
-                # Code for when home
-                print "At home"
-                self.check_food_search()
-
-
-            elif self.STATE == "search_food":
-                # Code for searching for food"
-                print "Searching"
-                pass
-
-
-            elif self.STATE == "food_found":
-                # Code for food found
-                pass
-
-            elif self.STATE == "return_home":
-                # Code for returning home
-                pass
-
             else:
                 pass
 
-            self.increase_hunger()
             rospy.sleep(self.TICK)
-        print "Dead"
+        print "Program Terminates"
 
 if __name__ == "__main__":
     client = Client()
