@@ -249,21 +249,26 @@ class Client:
             self.tags_l = self.apriltag_perception.detect_tags(self.caml_undistorted)
             if self.tags_l: 
                 for tag in self.tags_l:
+                    self.apriltag_perception.draw_box(self.caml_undistorted, tag, colour='green')
+                    self.apriltag_perception.draw_center(self.caml_undistorted, tag, colour='red')
                     if tag.id == tag_id:
                         left_cam = True
                         if tag.distance <= self.APPROACH_DISTANCE:
                             approached = True 
-
+            cv2.imshow('Left Cam', self.caml_undistorted)
         
         if self.camr_undistorted is not None:
             self.tags_r = self.apriltag_perception.detect_tags(self.camr_undistorted)
 
             if self.tags_r:
                 for tag in self.tags_r:
+                    self.apriltag_perception.draw_box(self.camr_undistorted, tag, colour='green')
+                    self.apriltag_perception.draw_center(self.camr_undistorted, tag, colour='red')
                     if tag.id == tag_id:
                         right_cam = True
                         if tag.distance <= self.APPROACH_DISTANCE:
                             approached = True 
+            cv2.imshow('Right Cam', self.camr_undistorted)
 
         return left_cam, right_cam, approached
 

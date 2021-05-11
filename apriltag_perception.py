@@ -52,3 +52,65 @@ class AprilTagPerception:
             tag = None
 
         return tag
+        
+    def draw_box(self, image, tag, colour=(0, 0, 0), width=200):
+		# Verify colour name or format
+		colour = self.check_colour(colour)
+
+		# Dynamic border width
+		width = int(width / tag.distance)
+
+		# Draw the AprilTag bounding box
+		for i in range(4):
+			try:
+				cv2.line(image, tuple(tag.corners[i]), tuple(tag.corners[i + 1]), colour, width)
+			except IndexError:
+				cv2.line(image, tuple(tag.corners[i]), tuple(tag.corners[0]), colour, width)
+
+	def draw_center(self, image, tag, colour=(0, 0, 0), width=250):
+		# Verify colour name or format
+		colour = self.check_colour(colour)
+
+		# Dynamic dot size
+		width = int(width / tag.distance)
+
+		# Draw the center (x, y)-coordinates of the AprilTag
+		cv2.circle(image, tuple(tag.centre), width, colour, -1)
+
+	def draw_distance(self, image, tag, colour=(0, 0, 0), size=20):
+		# Verify colour name or format
+		colour = self.check_colour(colour)
+
+		# Dynamic number size
+		scale = np.max([0.5, size / tag.distance])
+		thickness = int(np.max([1, (size * 3) / tag.distance]))
+
+		# Draw the tag distance on the image
+		cv2.putText(
+			image,
+			'{0:.2f}cm'.format(tag.distance),
+			tuple(tag.corners[0]),
+			cv2.FONT_HERSHEY_SIMPLEX,
+			scale,
+			colour,
+			thickness
+		)
+
+	def draw_id(self, image, tag, colour=(0, 0, 0), size=70):
+		# Verify colour name or format
+		colour = self.check_colour(colour)
+
+		# Dynamic number size
+		scale = np.max([0.25, size / tag.distance])
+		thickness = int(np.max([2, (size * 3) / tag.distance]))
+
+		# Draw the tag ID on the image
+		cv2.putText(
+			image,
+			str(tag.id),
+			tuple(tag.corners[3]),
+			cv2.FONT_HERSHEY_SIMPLEX,
+			scale,
+			colour,
+			thickness
+		)
