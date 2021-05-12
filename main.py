@@ -76,6 +76,14 @@ class Client:
     # Collision variables
     resolve_collision_counter = resolve_collision_iterations
 
+
+    # Spiral Walk Variables	
+    walk_type = "spiral" # Change walk type here spiral or random
+    spiral_call = 0      # Number to times spiral function is called, radius will increase every time function is called
+    iterations = 0       # Number of times main loop is iterated
+    left_velocity = MAX_WHEEL_SPEED * 0.8     # left wheel velocity
+    right_velocity = MAX_WHEEL_SPEED * 0.75   # right wheel velocity
+
     
     def touch_body_callback(self, data):
         # Touch body callback
@@ -96,13 +104,6 @@ class Client:
         # Sets object_close if object is within 5cm of sonar
         if data.range < 0.05:
             self.object_close = True
-
-
-    def body_vel_callback(self, data):
-        # Angle update
-        # Updated angle_to_origin based 
-        self.angle_to_origin += data.twist.angular.z * (180 / math.pi) / self.BROADCAST_RATE
-        self.angle_to_origin %= 360
 
 
     def process_frame(self, frame):
@@ -236,6 +237,35 @@ class Client:
                 self.walk_state = "straight"
                 self.walk_start_turn_time = time.time()
 
+    def spiral_walk(self, iterations):
+            # Spiral Walk code
+            # 1. Moves in spiral motion
+            # 2. Increase spiral radius on each function call to increase search space with time
+            # 3. Repeat
+
+            radius_increase = 0        # Increase of spiral radius per function call
+
+            self.spiral_call += 1
+            radius_increase =  (float(self.spiral_call) / float(iterations))
+            self.left_velocity =  self.left_velocity * (1 - radius_increase)
+            self.right_velocity = self.right_velocity * (1 + radius_increase)
+
+            if self.left_velocity < self.MAX_WHEEL_SPEED and self.right_velocity < self.MAX_WHEEL_SPEED and  self.right_velocity > 0 and self.left_velocity > 0:
+                self.move_miro(self.left_velocity, self.right_velocity)
+            else:
+               print ("Spiral Exceeding Speed Limit")
+               self.move_miro(self.MAX_WHEEL_SPEED * 0.8 , self.MAX_WHEEL_SPEED * 0.7)
+
+            # ------For Testing -------
+            #print ("Radius Increase: " + str(radius_increase))
+            #print ("Spiral Call Count: " + str(self.spiral_call))
+            #print ("Iterations: " + str(iterations))
+            #print ("Left Velocity: " + str(self.left_velocity))
+            #print ("Right Velocity: " + str(self.right_velocity))
+	        #print ("")		
+
+
+
 
     
     def tag_alignment(self, tag_id):
@@ -287,7 +317,7 @@ class Client:
         self.touch_body_sub = rospy.Subscriber(self.ROBOT_NAME + '/sensors/touch_body', UInt16, self.touch_body_callback, queue_size=1, tcp_nodelay=True)
         self.touch_head_sub = rospy.Subscriber(self.ROBOT_NAME + '/sensors/touch_head', UInt16, self.touch_head_callback, queue_size=1, tcp_nodelay=True)
         self.sonar = rospy.Subscriber(self.ROBOT_NAME + '/sensors/sonar', Range, self.sonar_callback, queue_size=1, tcp_nodelay=True)
-        self.body_vel = rospy.Subscriber(self.ROBOT_NAME + '/sensors/body_vel', TwistStamped, self.body_vel_callback, queue_size=1, tcp_nodelay=True)
+        #self.body_vel = rospy.Subscriber(self.ROBOT_NAME + '/sensors/body_vel', TwistStamped, self.body_vel_callback, queue_size=1, tcp_nodelay=True)
         self.caml_sub = rospy.Subscriber(self.ROBOT_NAME + '/sensors/caml/compressed', CompressedImage, self.callback_caml)
         self.camr_sub = rospy.Subscriber(self.ROBOT_NAME + '/sensors/camr/compressed', CompressedImage, self.callback_camr)
 
@@ -311,6 +341,7 @@ class Client:
 
         # Loop runs whilst ros isn't shutdown and robot isn't dead
         while not rospy.core.is_shutdown() and self.check_alive():
+            self.iterations += 1
 
             if self.detect_collision():
                 # Detected collision
@@ -335,7 +366,10 @@ class Client:
                 # Conducts random walk
                 # Checks food tag can be spotted
                 # If tag spotted enter "food_found" state
-                self.random_walk()
+                if self.walk_type == "spiral":                                       # check for walk mode
+                    self.spiral_walk(self.iterations)
+                else:
+                    self.random_walk()
                 tag_l, tag_r, approached = self.tag_alignment(self.FOOD_TAG_ID)
 
                 if tag_l or tag_r:
@@ -373,7 +407,10 @@ class Client:
                 # Conducts random walk
                 # Checks home tag can be spotted
                 # If tag spotted enter "home_found" state
-                self.random_walk()
+                if self.walk_type == "spiral":                                       # check for walk mode
+                    self.spiral_walk(self.iterations)
+                else:
+                    self.random_walk()
                 tag_l, tag_r, approached = self.tag_alignment(self.HOME_TAG_ID)
 
                 if tag_l or tag_r:
