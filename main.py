@@ -342,42 +342,16 @@ class Client:
         # Loop runs whilst ros isn't shutdown and robot isn't dead
         while not rospy.core.is_shutdown() and self.check_alive():
             self.iterations += 1
-
+            self.check_food_search()
             if self.detect_collision():
                 # Detected collision
                 print "Collision"
                 self.reset_collision_markers()
                 self.resolve_collision = True
-
-
             elif self.resolve_collision:
                 # If resolving collision move backwards
                 self.collision_resolve()
-
-
-            elif self.state == "home":
-                # Checks it doesn't need to search for food
-                # Calls increase score, to increase score if enough time has elapsed since last increase
-                self.check_food_search()
-                self.increase_score()
-
-
-            elif self.state == "search_food":
-                # Conducts random walk
-                # Checks food tag can be spotted
-                # If tag spotted enter "food_found" state
-                if self.walk_type == "spiral":                                       # check for walk mode
-                    self.spiral_walk(self.iterations)
-                else:
-                    self.random_walk()
-                tag_l, tag_r, approached = self.tag_alignment(self.FOOD_TAG_ID)
-
-                if tag_l or tag_r:
-                    self.state = "food_found"
-                    print "Food Found, Approaching"
-
-
-
+            
             elif self.state == "food_found":
                 # Aligns tag so it's visible in both cameras and heads forwards
                 # If tag is approached successfully then increase to full hunger
@@ -401,26 +375,23 @@ class Client:
                 else:
                     self.state = "search_food"
                     print "Searching for food"
-
-
-            elif self.state == "return_home":
+            elif self.state == "search_food":
                 # Conducts random walk
-                # Checks home tag can be spotted
-                # If tag spotted enter "home_found" state
+                # Checks food tag can be spotted
+                # If tag spotted enter "food_found" state
                 if self.walk_type == "spiral":                                       # check for walk mode
                     self.spiral_walk(self.iterations)
                 else:
                     self.random_walk()
-                tag_l, tag_r, approached = self.tag_alignment(self.HOME_TAG_ID)
+                tag_l, tag_r, approached = self.tag_alignment(self.FOOD_TAG_ID)
 
                 if tag_l or tag_r:
-                    self.state = "home_found"
-                    print "Home Found, Approaching"
-
-
-                self.check_food_search()
-
-
+                    self.state = "food_found"
+                    print "Food Found, Approaching"
+            elif self.state == "home":
+                # Checks it doesn't need to search for food
+                # Calls increase score, to increase score if enough time has elapsed since last increase
+                self.increase_score()
             elif self.state == "home_found":
                 # Aligns tag so it's visible in both cameras and heads forwards
                 # If tag is approached successfully then enter "home" state
@@ -441,11 +412,20 @@ class Client:
                     self.move_miro(self.MAX_WHEEL_SPEED, self.MAX_WHEEL_SPEED)
 
                 else:
-                    self.state = "search_home"
+                    self.state = "return_home"
+            elif self.state == "return_home":
+                # Conducts random walk
+                # Checks home tag can be spotted
+                # If tag spotted enter "home_found" state
+                if self.walk_type == "spiral":                                       # check for walk mode
+                    self.spiral_walk(self.iterations)
+                else:
+                    self.random_walk()
+                tag_l, tag_r, approached = self.tag_alignment(self.HOME_TAG_ID)
 
-                self.check_food_search()
-
-
+                if tag_l or tag_r:
+                    self.state = "home_found"
+                    print "Home Found, Approaching"        
             self.decrease_hunger()
             rospy.sleep(self.TICK)
         self.death()
